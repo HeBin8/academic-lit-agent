@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>学术文献分析助手 - 工作台设计稿 v2</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --soft: #f9fafc;
+      --line: #dfe5ee;
+      --line-soft: #ebeff5;
+      --text: #192232;
+      --muted: #697386;
+      --subtle: #8a95a6;
+      --blue: #1f6feb;
+      --blue-soft: #eef4ff;
+      --teal: #118b7a;
+      --amber: #af6b00;
+      --shadow: 0 16px 40px rgba(30, 41, 59, 0.08);
+      --radius: 8px;
+      font-family: "Inter", "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      letter-spacing: 0;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 264px 1fr;
+    }
+
+    .sidebar {
+      background: #ffffff;
+      border-right: 1px solid var(--line);
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 2px 4px 10px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--blue);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 17px;
+    }
+    .brand h1 { margin: 0; font-size: 15px; line-height: 1.25; }
+    .brand span { color: var(--muted); font-size: 12px; }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: #475467;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .icon-btn, .small-btn {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: #344054;
+      height: 30px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 0 9px;
+      white-space: nowrap;
+    }
+
+    .upload {
+      border: 1px dashed #adc2df;
+      background: #f7fbff;
+      border-radius: var(--radius);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #2459a6;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .paper-list { display: flex; flex-direction: column; gap: 8px; }
+    .paper-item {
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: var(--panel);
+    }
+    .paper-item.active { border-color: #9bbcf5; background: #f5f9ff; }
+    .paper-name {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+    .paper-meta {
+      margin-top: 5px;
+      color: var(--subtle);
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+    .tag {
+      border-radius: 999px;
+      padding: 3px 7px;
+      background: #eef4ff;
+      color: #2459a6;
+      font-size: 11px;
+      font-weight: 650;
+    }
+    .tag.teal { background: #e9f7f4; color: #087968; }
+    .tag.amber { background: #fff3dc; color: #915c00; }
+    .tag.gray { background: #f2f4f7; color: #475467; }
+
+    .nav-card {
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: var(--soft);
+    }
+    .nav-row {
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #344054;
+      font-size: 13px;
+      gap: 10px;
+    }
+    .nav-row b { text-align: right; }
+
+    .model-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .model-item {
+      border: 1px solid var(--line-soft);
+      border-radius: 7px;
+      padding: 8px 9px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .model-item.active {
+      border-color: #9bbcf5;
+      background: var(--blue-soft);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #17b26a;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .status-dot.warn { background: #f79009; }
+
+    .main {
+      min-width: 0;
+      padding: 18px 22px 22px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .title-wrap h2 { margin: 0; font-size: 22px; line-height: 1.25; }
+    .title-wrap p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .select-pill {
+      height: 34px;
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 7px;
+      padding: 0 11px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .select-pill strong { color: #1d2939; }
+    .primary {
+      height: 34px;
+      border: 1px solid #1557c0;
+      background: var(--blue);
+      color: white;
+      border-radius: 7px;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .metric {
+      background: white;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      padding: 12px;
+      box-shadow: 0 4px 18px rgba(30, 41, 59, 0.03);
+    }
+    .metric .label { color: var(--muted); font-size: 12px; }
+    .metric .value { margin-top: 6px; font-size: 20px; font-weight: 780; }
+    .metric .trend { margin-top: 4px; color: var(--teal); font-size: 11px; font-weight: 650; }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(520px, 1.05fr) minmax(430px, 0.95fr);
+      gap: 14px;
+    }
+    .panel {
+      background: white;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-width: 0;
+      overflow: hidden;
+    }
+    .panel-head {
+      height: 48px;
+      border-bottom: 1px solid var(--line-soft);
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #fff;
+    }
+    .panel-head h3 { margin: 0; font-size: 15px; }
+    .panel-head .meta { color: var(--muted); font-size: 12px; }
+
+    .tool-strip {
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      background: #fbfcfe;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .tool {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: white;
+      min-height: 84px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 7px;
+    }
+    .tool strong { display: block; font-size: 13px; margin-bottom: 4px; }
+    .tool span { color: var(--muted); font-size: 11px; line-height: 1.35; }
+    .mini-select {
+      height: 24px;
+      border: 1px solid var(--line-soft);
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #475467;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 7px;
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .chat-feed {
+      height: 468px;
+      padding: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #ffffff;
+    }
+    .message {
+      max-width: 88%;
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .message.user {
+      align-self: flex-end;
+      background: var(--blue-soft);
+      border-color: #c9ddff;
+    }
+    .message.assistant { align-self: flex-start; background: #ffffff; }
+    .msg-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--subtle);
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+    .model-badge {
+      border: 1px solid #cdd8ea;
+      background: #f8fbff;
+      border-radius: 999px;
+      padding: 2px 7px;
+      color: #2459a6;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .message h4 { margin: 0 0 6px; font-size: 13px; }
+    .result-table {
+      width: 100%;
+      margin-top: 8px;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .result-table th, .result-table td {
+      border: 1px solid var(--line-soft);
+      padding: 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .result-table th { background: #f6f8fb; color: #475467; }
+
+    .composer {
+      border-top: 1px solid var(--line-soft);
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: auto 150px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      background: #fbfcfe;
+    }
+    .input {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: white;
+      color: var(--subtle);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+    .composer-select {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      color: #344054;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .reader-body {
+      height: 644px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+    }
+    .tabs {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line-soft);
+      background: #fbfcfe;
+    }
+    .tab {
+      height: 28px;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .tab.active { color: #18488f; background: var(--blue-soft); }
+
+    .reader-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 210px;
+      overflow: hidden;
+    }
+    .paper-page {
+      margin: 14px;
+      background: #f0f2f6;
+      border-radius: 8px;
+      padding: 14px;
+      overflow: hidden;
+    }
+    .page-sheet {
+      height: 548px;
+      background: white;
+      border: 1px solid #ccd3df;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+      padding: 22px;
+      font-family: "Times New Roman", serif;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .paper-title {
+      text-align: center;
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .paper-cols {
+      columns: 2;
+      column-gap: 20px;
+      color: #303846;
+    }
+    .paper-cols h5 {
+      font-family: "Times New Roman", serif;
+      margin: 12px 0 4px;
+      font-size: 12px;
+    }
+    .side-inspector {
+      border-left: 1px solid var(--line-soft);
+      padding: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .inspector-card {
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #fbfcfe;
+    }
+    .inspector-card h4 { margin: 0 0 7px; font-size: 12px; }
+    .kv {
+      display: grid;
+      grid-template-columns: 62px 1fr;
+      gap: 6px;
+      font-size: 11px;
+      line-height: 1.35;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .kv b { color: #344054; }
+    .risk-list { display: flex; flex-direction: column; gap: 6px; font-size: 11px; }
+    .risk {
+      border-left: 3px solid var(--amber);
+      background: #fff8ea;
+      padding: 6px 7px;
+      border-radius: 4px;
+      color: #6f4700;
+    }
+    .risk.teal { border-left-color: var(--teal); background: #eefaf7; color: #0f665b; }
+
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .workspace { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">文</div>
+        <div>
+          <h1>学术文献分析助手</h1>
+          <span>Academic Lit Agent</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title"><span>论文资产</span><button class="icon-btn">＋</button></div>
+        <div class="upload">⇧ 上传 PDF / Word / Markdown</div>
+      </div>
+
+      <div class="paper-list">
+        <div class="paper-item active">
+          <div class="paper-name"><span>PFL-HL0501.pdf</span><span>⋯</span></div>
+          <div class="paper-meta"><span>15 页</span><span>刚刚解析</span></div>
+          <div class="tag-row"><span class="tag">联邦学习</span><span class="tag teal">已收藏</span></div>
+        </div>
+        <div class="paper-item">
+          <div class="paper-name"><span>Digital Twins for Wireless Networks.pdf</span><span>⋯</span></div>
+          <div class="paper-meta"><span>18 页</span><span>2026</span></div>
+          <div class="tag-row"><span class="tag amber">待对比</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title"><span>可用模型</span><button class="small-btn">管理</button></div>
+        <div class="model-list">
+          <div class="model-item active"><span><i class="status-dot"></i>DeepSeek</span><b>默认</b></div>
+          <div class="model-item"><span><i class="status-dot"></i>OpenAI GPT-4o</span><span>在线</span></div>
+          <div class="model-item"><span><i class="status-dot warn"></i>Kimi</span><span>备用</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title"><span>工作区</span></div>
+        <div class="nav-card">
+          <div class="nav-row"><span>当前项目</span><b>数字孪生综述</b></div>
+          <div class="nav-row"><span>默认模型</span><b>DeepSeek</b></div>
+          <div class="nav-row"><span>模型策略</span><b>任务可单独切换</b></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title"><span>快捷入口</span></div>
+        <div class="nav-card">
+          <div class="nav-row"><span>模型配置</span><span>›</span></div>
+          <div class="nav-row"><span>论文库统计</span><span>›</span></div>
+          <div class="nav-row"><span>导出报告</span><span>›</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="title-wrap">
+          <h2>文献研究工作台</h2>
+          <p>默认模型管理全局任务；单条消息、工具调用和长任务可以临时指定模型。</p>
+        </div>
+        <div class="top-actions">
+          <div class="select-pill"><span class="status-dot"></span>默认模型：<strong>DeepSeek</strong> ▾</div>
+          <div class="select-pill">任务策略：<strong>允许单次切换</strong> ▾</div>
+          <button class="small-btn">保存会话</button>
+          <button class="primary">生成综述草稿</button>
+        </div>
+      </header>
+
+      <section class="summary-grid">
+        <div class="metric"><div class="label">当前论文</div><div class="value">2</div><div class="trend">已解析 33 页</div></div>
+        <div class="metric"><div class="label">已调用工具</div><div class="value">7</div><div class="trend">全部可用</div></div>
+        <div class="metric"><div class="label">候选空白</div><div class="value">5</div><div class="trend">2 个高优先级</div></div>
+        <div class="metric"><div class="label">本轮模型</div><div class="value">GPT-4o</div><div class="trend">临时覆盖默认模型</div></div>
+      </section>
+
+      <section class="workspace">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>分析流</h3>
+            <span class="meta">每次工具调用都会记录使用的模型</span>
+          </div>
+          <div class="tool-strip">
+            <div class="tool">
+              <div><strong>搜索论文</strong><span>关键词、年份、领域和分页</span></div>
+              <div class="mini-select">模型：自动选择 ▾</div>
+            </div>
+            <div class="tool">
+              <div><strong>多论文对比</strong><span>方法、数据集、指标、结果</span></div>
+              <div class="mini-select">模型：GPT-4o ▾</div>
+            </div>
+            <div class="tool">
+              <div><strong>研究空白</strong><span>共识、矛盾、空白、趋势</span></div>
+              <div class="mini-select">模型：DeepSeek ▾</div>
+            </div>
+            <div class="tool">
+              <div><strong>引用图</strong><span>BFS / DFS 与共现关系</span></div>
+              <div class="mini-select">模型：无需 LLM ▾</div>
+            </div>
+          </div>
+
+          <div class="chat-feed">
+            <div class="message user">
+              <div class="msg-meta"><span class="model-badge">本条使用 GPT-4o</span><span>临时覆盖默认模型</span></div>
+              请对比这两篇论文，并找出适合写综述的研究空白。
+            </div>
+            <div class="message assistant">
+              <div class="msg-meta"><span class="model-badge">GPT-4o</span><span>调用 literature_comparator</span><span>耗时 12s</span></div>
+              <h4>多论文对比结果</h4>
+              两篇论文都围绕数字孪生与通信/联邦学习场景展开，但关注层级不同：一篇偏向个性化联邦学习框架，另一篇偏向无线网络闭环优化。
+              <table class="result-table">
+                <thead><tr><th>维度</th><th>PFL-HL0501</th><th>Digital Twins</th></tr></thead>
+                <tbody>
+                  <tr><td>方法</td><td>Hypernetwork + LoRA</td><td>应用感知闭环优化</td></tr>
+                  <tr><td>数据</td><td>CPS 异构场景</td><td>无线网络仿真</td></tr>
+                  <tr><td>空白</td><td>真实部署验证不足</td><td>跨域泛化仍待验证</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="message assistant">
+              <div class="msg-meta"><span class="model-badge">DeepSeek</span><span>调用 research_gap_analyzer</span></div>
+              <h4>研究空白建议</h4>
+              优先考虑“数字孪生驱动的个性化学习在真实 CPS 系统中的低成本部署与评估”，它能同时连接方法创新和应用落地。
+            </div>
+          </div>
+
+          <div class="composer">
+            <button class="icon-btn">＋</button>
+            <div class="composer-select">本条模型：GPT-4o ▾</div>
+            <div class="input">继续提问，或输入 / 调用工具...</div>
+            <button class="primary">发送</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>阅读与结构化信息</h3>
+            <span class="meta">摘要模型：DeepSeek ▾</span>
+          </div>
+          <div class="reader-body">
+            <div class="tabs">
+              <div class="tab active">原文</div>
+              <div class="tab">结构化解析</div>
+              <div class="tab">翻译</div>
+              <div class="tab">笔记</div>
+            </div>
+            <div class="reader-grid">
+              <div class="paper-page">
+                <div class="page-sheet">
+                  <div class="paper-title">Digital Twin-Driven Personalized Federated Learning with Hypernetworks and Low-Rank Adaptation</div>
+                  <div class="paper-cols">
+                    <p><b>Abstract</b> — With the rapid development of distributed intelligent technologies, federated learning and digital twin systems have increasingly supported cyber-physical services.</p>
+                    <h5>I. Introduction</h5>
+                    <p>Modern CPS environments face heterogeneous data, unstable edge resources, and strict privacy constraints. Personalized federated learning provides an effective path, but training efficiency and adaptation remain challenging.</p>
+                    <h5>II. Proposed Method</h5>
+                    <p>The paper introduces a hypernetwork-driven architecture with low-rank adaptation to generate personalized model parameters for heterogeneous clients.</p>
+                    <h5>III. Experiments</h5>
+                    <p>Results show improvements in classification accuracy and communication efficiency under non-IID settings.</p>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="side-inspector">
+                <div class="inspector-card">
+                  <h4>自动摘要 <span class="tag gray">DeepSeek</span></h4>
+                  <div class="kv"><b>问题</b><span>异构 CPS 中个性化 FL 难以稳定训练</span></div>
+                  <div class="kv"><b>方法</b><span>Hypernetwork + LoRA 参数生成</span></div>
+                  <div class="kv"><b>结果</b><span>精度与通信效率均有提升</span></div>
+                </div>
+                <div class="inspector-card">
+                  <h4>模型切换说明</h4>
+                  <div class="risk-list">
+                    <div class="risk teal">默认模型用于普通对话和摘要。</div>
+                    <div class="risk">复杂推理任务可临时选择更强模型。</div>
+                    <div class="risk">纯检索/数据库工具可选择“无需 LLM”。</div>
+                  </div>
+                </div>
+                <div class="inspector-card">
+                  <h4>下一步建议</h4>
+                  <button class="small-btn">用 GPT-4o 重写摘要</button>
+                  <button class="small-btn">用 DeepSeek 生成提纲</button>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

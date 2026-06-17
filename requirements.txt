@@ -1,0 +1,16 @@
+﻿# Core
+streamlit>=1.40.0
+
+# PDF parsing (choose one)
+pymupdf>=1.25.0              # recommended
+# pypdf>=5.0.0                # lighter alternative
+
+# Visualization
+matplotlib>=3.8.0
+numpy>=1.26.0
+
+# Data handling
+# (sqlite3 is stdlib)
+
+python-docx>=1.1.0    # Word .docx support
+pypdf>=5.0.0             # PDF fallback parser

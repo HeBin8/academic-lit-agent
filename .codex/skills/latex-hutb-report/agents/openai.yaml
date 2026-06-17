@@ -1,0 +1,4 @@
+interface:
+  display_name: LaTeX HUTB Course Report
+  short_description: HUTB LaTeX report with cover TOC chapters bibliography
+  default_prompt: Use the HUTB LaTeX template to produce a course report

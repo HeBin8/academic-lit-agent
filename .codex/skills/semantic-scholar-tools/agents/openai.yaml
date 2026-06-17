@@ -1,0 +1,4 @@
+interface:
+  display_name: "Semantic Scholar API Tools"
+  short_description: "Search papers and get metadata from Semantic Scholar"
+  default_prompt: "Use the Semantic Scholar API scripts to search for papers, get paper details, fetch citations/references, or export BibTeX"

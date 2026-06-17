@@ -1,0 +1,29 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Data
+data/model_configs.json
+data/papers.db
+data/plots/*.png
+data/papers/*
+!data/papers/.gitkeep
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Local screenshots / browser test artifacts
+browser_*.png
+screenshot_*.png
+*.tmp
+
+# IDE
+.idea/
+.vscode/
+
+# LaTeX build
+*.aux *.bbl *.bcf *.blg *.lof *.log *.lot *.out *.run.xml *.synctex.gz *.toc *.pdf
+docs/latex-template/*.pdf
