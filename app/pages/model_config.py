@@ -5,6 +5,33 @@ from src.models.model_manager import ModelConfig
 
 
 st.set_page_config(page_title="模型配置", page_icon="settings", layout="wide")
+st.markdown(
+    """
+    <style>
+    header[data-testid="stHeader"],
+    div[data-testid="stToolbar"],
+    div[data-testid="stDecoration"],
+    div[data-testid="stStatusWidget"],
+    #MainMenu,
+    footer {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+    }
+
+    [data-testid="stAppViewContainer"],
+    [data-testid="stAppViewBlockContainer"],
+    section.main > div,
+    .block-container {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 st.title("模型配置")
 st.caption("添加、编辑或删除大模型 API 配置。支持任何 OpenAI 兼容接口的大模型。")
 

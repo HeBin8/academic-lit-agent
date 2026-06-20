@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Literature research workspace."""
 
+import hashlib
 import html
 import json
 import os
@@ -106,16 +107,77 @@ def page_css() -> None:
     st.markdown(
         """
         <style>
+        /* 彻底隐藏 Streamlit 顶部系统栏：Deploy、三点菜单、顶部装饰线 */
+        div[data-testid="stToolbar"],
+        div[data-testid="stDecoration"],
+        div[data-testid="stStatusWidget"],
+        #MainMenu,
+        footer {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            max-height: 0 !important;
+        }
         header[data-testid="stHeader"] {
-            height: 0;
-            min-height: 0;
-            background: transparent;
+            height: 0 !important;
+            min-height: 0 !important;
+            background: transparent !important;
+            pointer-events: none;
         }
-        section.main > div {
-            padding-top: 0 !important;
+        header[data-testid="stHeader"] * {
+            pointer-events: auto;
         }
+        [data-testid="stSidebarCollapseButton"],
+        [data-testid="stSidebarCollapsedControl"],
+        button[title="Open sidebar"],
+        button[title="Close sidebar"] {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 100000 !important;
+        }
+        [data-testid="stSidebarCollapseButton"] {
+            position: fixed !important;
+            left: 302px !important;
+            top: 10px !important;
+            width: 34px !important;
+            height: 34px !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 10px !important;
+            background: #ffffff !important;
+            border: 1px solid #dde5f0 !important;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+        }
+        [data-testid="stSidebarCollapseButton"] button {
+            width: 32px !important;
+            height: 32px !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] {
+            position: fixed !important;
+            left: 18px !important;
+            top: 18px !important;
+            width: 42px !important;
+            height: 42px !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+            border: 1px solid #dce3ee !important;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14) !important;
+        }
+
+        /* 去掉 Streamlit 给顶部预留的空白 */
+        [data-testid="stAppViewContainer"],
+        [data-testid="stAppViewBlockContainer"],
+        section.main > div,
         .block-container {
-            padding-top: 0.35rem;
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        }
+
+        /* 页面主体继续保持宽屏铺满 */
+        .block-container {
+            padding-top: 0 !important;
             padding-bottom: 112px;
             max-width: 1480px;
         }
@@ -123,8 +185,52 @@ def page_css() -> None:
             background: #ffffff;
             border-right: 1px solid #dfe5ee;
         }
+        [data-testid="stSidebar"] > div:first-child {
+            padding-top: 28px;
+        }
+        [data-testid="stSidebarUserContent"] {
+            margin-top: -110px;
+        }
         [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
             gap: 0.75rem;
+        }
+        [data-testid="stSidebarNav"] {
+            display: none !important;
+        }
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 2px 0 18px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid #e4e9f1;
+        }
+        .sidebar-brand-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: #3d6ee8;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 25px;
+            font-weight: 900;
+            line-height: 1;
+            box-shadow: 0 8px 18px rgba(61, 110, 232, 0.22);
+        }
+        .sidebar-brand-title {
+            margin: 0;
+            color: #0f172a;
+            font-size: 18px;
+            font-weight: 850;
+            line-height: 1.2;
+        }
+        .sidebar-brand-subtitle {
+            margin: 5px 0 0;
+            color: #667085;
+            font-size: 13px;
+            line-height: 1.2;
         }
         h1, h2, h3 { letter-spacing: 0; }
         div[data-testid="stMetric"] {
@@ -144,14 +250,66 @@ def page_css() -> None:
         }
         .topbar-title h1 {
             margin: 0;
-            font-size: 28px;
+            font-size: 30px;
             line-height: 1.2;
-            color: #192232;
+            color: #0f172a;
+            font-weight: 900;
         }
         .topbar-title p {
             margin: 5px 0 0;
             color: #697386;
             font-size: 14px;
+        }
+        .topbar-control-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 38px;
+            padding: 0 13px;
+            margin-top: 1px;
+            border: 1px solid #dce3ee;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 750;
+            white-space: nowrap;
+            box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+        }
+        .topbar-control-label .status-dot {
+            flex: 0 0 auto;
+        }
+        .topbar-select [data-testid="stSelectbox"] label {
+            display: none !important;
+        }
+        .topbar-select div[data-baseweb="select"] {
+            min-height: 38px !important;
+            height: 38px !important;
+            border-radius: 8px !important;
+            border: 1px solid #dce3ee !important;
+            background: #ffffff !important;
+            box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04) !important;
+        }
+        .topbar-select div[data-baseweb="select"] > div {
+            padding-left: 0 !important;
+        }
+        button[data-testid="stBaseButton-primary"] {
+            min-height: 38px !important;
+            height: 38px !important;
+            border-radius: 8px !important;
+            background: #2f6feb !important;
+            border: 1px solid #245bd4 !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            white-space: nowrap !important;
+            box-shadow: 0 2px 0 rgba(20, 58, 138, 0.35) !important;
+        }
+        button[data-testid="stBaseButton-secondary"] {
+            min-height: 38px !important;
+            height: 38px !important;
+            border-radius: 8px !important;
+            font-weight: 760 !important;
+            white-space: nowrap !important;
         }
         .status-dot {
             width: 8px;
@@ -182,41 +340,85 @@ def page_css() -> None:
         }
         div[data-testid="stForm"] {
             position: fixed;
-            left: max(330px, calc((100vw - 1480px) / 2 + 300px + 80px));
+            left: max(330px, calc((100vw - 1480px) / 2 + 300px + 100px));
             bottom: 16px;
-            width: min(720px, calc((100vw - 360px) * 0.52));
-            height: 74px !important;
-            min-height: 74px !important;
-            max-height: 74px !important;
+            width: min(512px, calc((100vw - 360px) * 0.475));
+            height: auto !important;
+            min-height: 70px !important;
+            max-height: 190px !important;
             overflow: visible !important;
             z-index: 999;
             border: 1px solid #dfe3ea !important;
-            border-radius: 28px !important;
-            padding: 12px 14px !important;
+            border-radius: 26px !important;
+            padding: 10px 14px !important;
             background: #ffffff !important;
-            box-shadow: 0 12px 36px rgba(15, 23, 42, 0.13) !important;
+            box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12) !important;
         }
         div[data-testid="stForm"] [data-testid="column"] {
             display: flex;
             align-items: center;
+            justify-content: center;
         }
         div[data-testid="stForm"] [data-testid="stVerticalBlock"],
         div[data-testid="stForm"] [data-testid="stHorizontalBlock"] {
             gap: 0.35rem !important;
             min-height: 0 !important;
+            align-items: center !important;
         }
-        div[data-testid="stForm"] div[data-testid="stTextInput"] input {
+        .composer-plus {
+            height: 46px;
+            width: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 27px;
+            line-height: 1;
+            color: #667085;
+        }
+        div[data-testid="stForm"] div[data-testid="stTextArea"] {
+            width: 100%;
+        }
+        div[data-testid="stForm"] div[data-baseweb="textarea"],
+        div[data-testid="stForm"] div[data-baseweb="textarea"]:focus-within {
             border: none !important;
             box-shadow: none !important;
+            outline: none !important;
             background: transparent !important;
-            font-size: 14px;
+        }
+        div[data-testid="stForm"] div[data-testid="stTextArea"] textarea {
+            height: auto !important;
+            min-height: 48px !important;
+            max-height: 132px !important;
+            field-sizing: content;
+            resize: none !important;
+            overflow-y: auto !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: #f1f3f6 !important;
+            border-radius: 13px !important;
+            padding: 13px 15px !important;
+            font-size: 14px !important;
+            line-height: 1.45 !important;
+        }
+        div[data-testid="stForm"] div[data-testid="stTextArea"] textarea:focus {
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+        div[data-testid="stForm"] [data-testid="InputInstructions"] {
+            display: none !important;
         }
         div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
-            border-radius: 50% !important;
-            min-width: 46px !important;
-            width: 46px !important;
-            height: 46px !important;
-            padding: 0 !important;
+            border-radius: 12px !important;
+            min-width: 70px !important;
+            width: 70px !important;
+            height: 48px !important;
+            padding: 0 14px !important;
+            background: #2f6feb !important;
+            border: 1px solid #245bd4 !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 2px 0 rgba(20, 58, 138, 0.45) !important;
         }
         div[data-testid="stForm"] button[kind="secondaryFormSubmit"] {
             border-radius: 50% !important;
@@ -227,8 +429,13 @@ def page_css() -> None:
             font-size: 22px !important;
         }
         div[data-testid="stForm"] div[data-baseweb="select"] {
-            border-radius: 20px !important;
-            background: #f6f7f9 !important;
+            min-height: 48px !important;
+            height: 48px !important;
+            border-radius: 13px !important;
+            background: #f1f3f6 !important;
+        }
+        div[data-testid="stForm"] div[data-baseweb="select"] span {
+            font-size: 13px !important;
         }
         .scroll-paper {
             height: 640px;
@@ -413,11 +620,461 @@ def page_css() -> None:
         div[data-testid="stSelectbox"] div[data-baseweb="select"] {
             border-radius: 7px;
         }
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] span {
+            font-size: 13px !important;
+        }
+        /* workspace_v3 compact visual pass */
+        .stApp {
+            background: #f5f7fb !important;
+            color: #192232 !important;
+            font-family: "Inter", "Segoe UI", "Microsoft YaHei", system-ui, sans-serif !important;
+        }
+        .block-container {
+            max-width: 1480px !important;
+            padding-left: 22px !important;
+            padding-right: 22px !important;
+            padding-bottom: 96px !important;
+        }
+        [data-testid="stSidebar"] {
+            background: #ffffff !important;
+            border-right: 1px solid #dfe5ee !important;
+        }
+        [data-testid="stSidebarCollapseButton"] {
+            left: 248px !important;
+            top: 18px !important;
+            width: 30px !important;
+            height: 30px !important;
+            border-radius: 8px !important;
+            box-shadow: none !important;
+        }
+        [data-testid="stSidebarCollapseButton"] button {
+            width: 28px !important;
+            height: 28px !important;
+        }
+        body:has([data-testid="stSidebar"].st-emotion-cache-1udkqym) [data-testid="stSidebarCollapseButton"] {
+            left: 310px !important;
+            top: 10px !important;
+            width: 34px !important;
+            height: 34px !important;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+            gap: 0.68rem !important;
+        }
+        [data-testid="stSidebar"] h3 {
+            margin: 0 0 8px !important;
+            color: #475467 !important;
+            font-size: 13px !important;
+            line-height: 1.25 !important;
+            font-weight: 780 !important;
+        }
+        [data-testid="stSidebar"] hr {
+            margin: 10px 0 !important;
+            border-color: #ebeff5 !important;
+        }
+        [data-testid="stSidebar"] small,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] label {
+            font-size: 12px !important;
+            color: #697386 !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section {
+            border: 1px dashed #adc2df !important;
+            border-radius: 8px !important;
+            background: #f7fbff !important;
+            padding: 10px 12px !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] button {
+            height: 30px !important;
+            min-height: 30px !important;
+            border-radius: 6px !important;
+            font-size: 12px !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {
+            color: #2459a6 !important;
+            font-size: 13px !important;
+            font-weight: 650 !important;
+        }
+        .asset-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 2px 0 10px;
+        }
+        .asset-title-row h3 {
+            margin: 0 !important;
+            color: #344054 !important;
+            font-size: 16px !important;
+            font-weight: 850 !important;
+            line-height: 1.2 !important;
+        }
+        .asset-add {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #dfe5ee;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #344054;
+            background: #ffffff;
+            font-size: 20px;
+            line-height: 1;
+        }
+        .library-card {
+            border: 1px solid #dfe5ee;
+            border-radius: 10px;
+            background: #ffffff;
+            padding: 12px 12px 10px;
+            margin-bottom: 10px;
+        }
+        .library-card.active {
+            border-color: #9bbcf5;
+            background: #f5f9ff;
+        }
+        .library-card-head {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            align-items: start;
+        }
+        .library-card-title {
+            color: #0f172a;
+            font-size: 15px;
+            font-weight: 850;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .library-menu-placeholder {
+            width: 34px;
+            height: 30px;
+        }
+        .library-meta-row {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            color: #8a95a6;
+            font-size: 13px;
+        }
+        .library-tags {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .library-menu-wrap {
+            margin-top: -104px;
+            display: flex;
+            justify-content: flex-end;
+            pointer-events: none;
+        }
+        .library-menu-wrap [data-testid="stPopover"] {
+            pointer-events: auto;
+        }
+        [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {
+            border-color: #dfe5ee !important;
+            border-radius: 10px !important;
+            background: #ffffff !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"]:has(.library-card-inner.active) {
+            border-color: #9bbcf5 !important;
+            background: #f5f9ff !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stPopover"] button {
+            min-height: 30px !important;
+            height: 30px !important;
+            border-radius: 6px !important;
+            padding: 0 8px !important;
+            font-size: 16px !important;
+            line-height: 1 !important;
+        }
+        .library-card-inner {
+            padding: 0;
+        }
+        .library-card-inner .library-card-title {
+            margin-top: 2px;
+        }
+        .library-menu-wrap button {
+            width: 34px !important;
+            min-width: 34px !important;
+            height: 30px !important;
+            min-height: 30px !important;
+            padding: 0 !important;
+            border-radius: 6px !important;
+            font-size: 18px !important;
+            font-weight: 800 !important;
+        }
+        .sidebar-brand {
+            gap: 10px !important;
+            padding: 2px 4px 10px !important;
+            margin-bottom: 14px !important;
+            border-bottom: 1px solid #ebeff5 !important;
+        }
+        .sidebar-brand-mark {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 8px !important;
+            background: #1f6feb !important;
+            font-size: 17px !important;
+            font-weight: 800 !important;
+            box-shadow: none !important;
+        }
+        .sidebar-brand-title {
+            font-size: 15px !important;
+            line-height: 1.25 !important;
+            font-weight: 800 !important;
+        }
+        .sidebar-brand-subtitle {
+            margin-top: 2px !important;
+            font-size: 12px !important;
+            color: #697386 !important;
+        }
+        .topbar-title h1 {
+            font-size: 22px !important;
+            line-height: 1.25 !important;
+            font-weight: 850 !important;
+            color: #192232 !important;
+        }
+        .topbar-title {
+            padding-left: 22px !important;
+        }
+        .topbar-title p {
+            margin-top: 4px !important;
+            font-size: 13px !important;
+            color: #697386 !important;
+            line-height: 1.35 !important;
+        }
+        div[data-testid="stMetric"] {
+            border: 1px solid #ebeff5 !important;
+            border-radius: 8px !important;
+            padding: 12px !important;
+            box-shadow: 0 4px 18px rgba(30, 41, 59, 0.03) !important;
+            min-height: 108px !important;
+        }
+        div[data-testid="stMetric"] label,
+        div[data-testid="stMetric"] [data-testid="stMetricDelta"] {
+            font-size: 12px !important;
+            color: #697386 !important;
+        }
+        div[data-testid="stMetricValue"] {
+            font-size: 20px !important;
+            line-height: 1.15 !important;
+            font-weight: 780 !important;
+        }
+        .section-card {
+            border: 1px solid #ebeff5 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 16px 40px rgba(30, 41, 59, 0.08) !important;
+            background: #ffffff !important;
+        }
+        .panel-head {
+            height: 48px !important;
+            padding: 0 14px !important;
+            border-bottom: 1px solid #ebeff5 !important;
+            background: #ffffff !important;
+        }
+        .panel-head h3 {
+            font-size: 15px !important;
+            font-weight: 760 !important;
+        }
+        .panel-head span {
+            font-size: 12px !important;
+            color: #697386 !important;
+        }
+        .tool-card {
+            min-height: 84px !important;
+            padding: 10px !important;
+            border-radius: 8px !important;
+            border-color: #dfe5ee !important;
+            box-shadow: none !important;
+        }
+        .tool-card strong,
+        .message-card h1,
+        .message-card h2,
+        .message-card h3,
+        .message-card h4 {
+            font-size: 13px !important;
+        }
+        .tool-card p {
+            min-height: 30px !important;
+            margin-bottom: 7px !important;
+            font-size: 11px !important;
+            line-height: 1.35 !important;
+        }
+        .tool-card div[data-baseweb="select"] {
+            min-height: 24px !important;
+            height: 24px !important;
+            border-radius: 6px !important;
+            background: #f8fafc !important;
+        }
+        .tool-card div[data-baseweb="select"] span {
+            font-size: 11px !important;
+            font-weight: 650 !important;
+        }
+        .message-card {
+            max-width: 88% !important;
+            border-radius: 8px !important;
+            padding: 10px 12px !important;
+            margin-bottom: 12px !important;
+            font-size: 13px !important;
+            line-height: 1.55 !important;
+            color: #192232 !important;
+        }
+        .message-card.user {
+            margin-left: 12% !important;
+            background: #eef4ff !important;
+            border-color: #c9ddff !important;
+        }
+        .message-card.assistant {
+            margin-right: 12% !important;
+            background: #ffffff !important;
+        }
+        .message-meta,
+        .model-badge {
+            font-size: 11px !important;
+        }
+        .paper-chip {
+            padding: 8px 9px !important;
+            border-radius: 7px !important;
+            margin-bottom: 7px !important;
+            background: #ffffff !important;
+        }
+        .paper-chip.active {
+            background: #eef4ff !important;
+            border-color: #9bbcf5 !important;
+        }
+        .paper-title {
+            font-size: 12px !important;
+            font-weight: 740 !important;
+        }
+        .paper-meta {
+            font-size: 11px !important;
+        }
+        .tag {
+            font-size: 11px !important;
+            padding: 3px 7px !important;
+            margin-top: 6px !important;
+        }
+        .reader-shell,
+        .scroll-paper,
+        .translation-scroll {
+            border-radius: 8px !important;
+            background: #f0f2f6 !important;
+        }
+        .inspector-card {
+            padding: 10px !important;
+            border-radius: 8px !important;
+            font-size: 12px !important;
+        }
+        .inspector-card h4 {
+            font-size: 12px !important;
+        }
+        .kv-row,
+        .hint-box {
+            font-size: 11px !important;
+        }
+        .stButton > button,
+        .stDownloadButton > button {
+            min-height: 30px !important;
+            height: 30px !important;
+            border-radius: 6px !important;
+            padding: 0 9px !important;
+            font-size: 12px !important;
+            font-weight: 650 !important;
+        }
+        button[data-testid="stBaseButton-primary"] {
+            min-height: 34px !important;
+            height: 34px !important;
+            border-radius: 7px !important;
+            background: #1f6feb !important;
+            border-color: #1557c0 !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            box-shadow: none !important;
+        }
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] {
+            min-height: 34px !important;
+            height: 34px !important;
+            border-radius: 7px !important;
+            border-color: #dfe5ee !important;
+            background: #ffffff !important;
+        }
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] span {
+            font-size: 12px !important;
+        }
+        div[data-testid="stForm"] {
+            position: fixed !important;
+            left: max(322px, calc((100vw - 1480px) / 2 + 322px)) !important;
+            right: auto !important;
+            bottom: 10px !important;
+            width: min(576px, calc((100vw - 360px) * 0.533)) !important;
+            min-height: 58px !important;
+            max-height: none !important;
+            margin: 0 !important;
+            padding: 10px 12px !important;
+            border: 0 !important;
+            border: 1px solid #ebeff5 !important;
+            border-radius: 0 !important;
+            background: #fbfcfe !important;
+            box-shadow: none !important;
+            z-index: 999 !important;
+        }
+        body:has([data-testid="stSidebar"].st-emotion-cache-1udkqym) div[data-testid="stForm"] {
+            left: 22px !important;
+            width: min(738px, calc(100vw - 680px)) !important;
+        }
+        div[data-testid="stForm"] [data-testid="stHorizontalBlock"] {
+            gap: 0.5rem !important;
+        }
+        .composer-plus {
+            width: 30px !important;
+            height: 38px !important;
+            margin-top: -8px !important;
+            font-size: 24px !important;
+            color: #667085 !important;
+        }
+        div[data-testid="stForm"] div[data-testid="stTextArea"] textarea {
+            min-height: 38px !important;
+            height: 38px !important;
+            max-height: 118px !important;
+            border: 1px solid #dfe5ee !important;
+            border-radius: 7px !important;
+            background: #ffffff !important;
+            padding: 9px 12px !important;
+            font-size: 13px !important;
+            line-height: 1.35 !important;
+        }
+        div[data-testid="stForm"] div[data-baseweb="select"] {
+            min-height: 38px !important;
+            height: 38px !important;
+            border-radius: 7px !important;
+            border: 1px solid #dfe5ee !important;
+            background: #ffffff !important;
+        }
+        div[data-testid="stForm"] div[data-baseweb="select"] span {
+            font-size: 12px !important;
+            font-weight: 650 !important;
+        }
+        div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
+            width: auto !important;
+            min-width: 58px !important;
+            height: 38px !important;
+            border-radius: 7px !important;
+            padding: 0 12px !important;
+            background: #1f6feb !important;
+            border-color: #1557c0 !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            box-shadow: none !important;
+        }
         @media (max-width: 1100px) {
             div[data-testid="stForm"] {
-                left: 16px;
-                right: 16px;
-                width: auto;
+                left: 16px !important;
+                right: 16px !important;
+                width: auto !important;
             }
         }
         </style>
@@ -430,11 +1087,21 @@ def add_uploaded_file(uploaded) -> None:
     PAPER_DIR.mkdir(parents=True, exist_ok=True)
     path = PAPER_DIR / uploaded.name
     path.write_bytes(uploaded.getbuffer())
+    source_hash = file_sha256(path)
+    page_count = estimate_page_count(path)
     record = {
         "name": uploaded.name,
         "path": str(path),
         "timestamp": datetime.now().strftime("%m-%d %H:%M"),
+        "paper_id": f"local:{source_hash[:16]}",
+        "page_count": page_count,
+        "favorite": False,
+        "tags": [],
+        "status": "刚刚解析",
     }
+    saved = save_paper_record_to_db(record, source_hash)
+    if saved.get("paper_id"):
+        record["paper_id"] = saved["paper_id"]
     existing = next((p for p in st.session_state.uploaded_papers if p["name"] == uploaded.name), None)
     if existing:
         existing.update(record)
@@ -443,6 +1110,129 @@ def add_uploaded_file(uploaded) -> None:
     st.session_state.current_doc = str(path)
     st.session_state.current_doc_name = uploaded.name
     st.session_state.doc_translation = ""
+
+
+def file_sha256(path: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def estimate_page_count(path: pathlib.Path) -> int:
+    fmt = _detect_format(str(path))
+    try:
+        if fmt == "pdf" and _has_lib("fitz"):
+            import fitz
+
+            doc = fitz.open(str(path))
+            try:
+                return len(doc)
+            finally:
+                doc.close()
+        if fmt == "docx" and _has_lib("docx"):
+            import docx
+
+            doc = docx.Document(str(path))
+            paragraphs = [p for p in doc.paragraphs if p.text.strip()]
+            return max(1, round(len(paragraphs) / 8))
+    except Exception:
+        return 0
+    return 0
+
+
+def save_paper_record_to_db(record: dict, source_hash: str = "") -> dict:
+    out = st.session_state.tool_registry.execute(
+        {
+            "tool": "sqlite_paper_db",
+            "kwargs": {
+                "operation": "save",
+                "paper_id": record.get("paper_id", ""),
+                "title": record.get("name", ""),
+                "year": str(record.get("year", "")),
+                "file_path": record.get("path", ""),
+                "source_hash": source_hash,
+                "page_count": str(record.get("page_count", 0)),
+                "status": record.get("status", ""),
+                "tags": ",".join(record.get("tags", [])),
+            },
+        }
+    )
+    try:
+        return json.loads(out)
+    except json.JSONDecodeError:
+        return {}
+
+
+def paper_library_records() -> list[dict]:
+    out = st.session_state.tool_registry.execute({"tool": "sqlite_paper_db", "kwargs": {"operation": "list_json"}})
+    try:
+        records = json.loads(out)
+    except json.JSONDecodeError:
+        records = []
+    if not records:
+        return []
+    return [normalize_library_record(record) for record in records if record.get("file_path")]
+
+
+def normalize_library_record(record: dict) -> dict:
+    title = record.get("title") or os.path.basename(record.get("file_path", "")) or record.get("paper_id", "")
+    return {
+        "paper_id": record.get("paper_id", ""),
+        "name": title,
+        "path": record.get("file_path", ""),
+        "timestamp": _format_saved_at(record.get("saved_at", "")),
+        "year": record.get("year") or 0,
+        "page_count": record.get("page_count") or 0,
+        "tags": record.get("tags") or [],
+        "favorite": bool(record.get("favorite")),
+        "status": record.get("status") or "已解析",
+    }
+
+
+def _format_saved_at(value: str) -> str:
+    if not value:
+        return ""
+    try:
+        return datetime.fromisoformat(value).strftime("%m-%d %H:%M")
+    except ValueError:
+        return str(value)[:16]
+
+
+def add_record_to_current_session(record: dict) -> None:
+    if not record.get("path"):
+        return
+    existing = next((p for p in st.session_state.uploaded_papers if p.get("paper_id") == record.get("paper_id")), None)
+    payload = {
+        "name": record.get("name", ""),
+        "path": record.get("path", ""),
+        "timestamp": record.get("timestamp") or datetime.now().strftime("%m-%d %H:%M"),
+        "paper_id": record.get("paper_id", ""),
+        "page_count": record.get("page_count", 0),
+        "tags": record.get("tags", []),
+        "favorite": record.get("favorite", False),
+        "status": record.get("status", ""),
+    }
+    if existing:
+        existing.update(payload)
+    else:
+        st.session_state.uploaded_papers.append(payload)
+
+
+def update_library_tags(paper_id: str, tags: list[str]) -> None:
+    st.session_state.tool_registry.execute(
+        {
+            "tool": "sqlite_paper_db",
+            "kwargs": {"operation": "set_tags", "paper_id": paper_id, "tags": ",".join(tags)},
+        }
+    )
+
+
+def set_library_favorite(paper_id: str, favorite: bool) -> None:
+    st.session_state.tool_registry.execute(
+        {"tool": "sqlite_paper_db", "kwargs": {"operation": "favorite" if favorite else "unfavorite", "paper_id": paper_id}}
+    )
 
 
 def parse_document(path: str | None) -> str:
@@ -616,9 +1406,127 @@ def render_message(message: dict) -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+def render_library_card(paper: dict) -> None:
+    paper_id = paper.get("paper_id") or paper.get("name", "")
+    safe_key = re.sub(r"[^a-zA-Z0-9_]+", "_", paper_id or paper.get("name", "paper"))
+    active = st.session_state.get("current_doc") == paper.get("path")
+    tags = list(dict.fromkeys(paper.get("tags") or []))
+    if paper.get("favorite") and "已收藏" not in tags:
+        tags.insert(0, "已收藏")
+    if not tags:
+        tags = ["论文"]
+    meta_left = f"{paper.get('page_count')} 页" if paper.get("page_count") else (str(paper.get("year")) if paper.get("year") else "本地论文")
+    meta_right = "当前阅读" if active else (paper.get("status") or paper.get("timestamp") or "已入库")
+    inner_class = "library-card-inner active" if active else "library-card-inner"
+    with st.container(border=True):
+        top_cols = st.columns([0.74, 0.26], vertical_alignment="top")
+        with top_cols[0]:
+            st.markdown(
+                f'<div class="{inner_class}"><div class="library-card-title">{html.escape(paper.get("name", "未命名论文"))}</div></div>',
+                unsafe_allow_html=True,
+            )
+        with top_cols[1]:
+            menu = st.popover("...", key=f"paper_menu_{safe_key}", width="content", use_container_width=True)
+        st.markdown(
+            f"""
+            <div class="library-meta-row"><span>{html.escape(str(meta_left))}</span><span>{html.escape(str(meta_right))}</span></div>
+            <div class="library-tags">{''.join(render_library_tag(tag) for tag in tags[:4])}</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        with menu:
+            st.caption("论文操作")
+            if st.button("打开论文", key=f"open_lib_{safe_key}", use_container_width=True):
+                add_record_to_current_session(paper)
+                st.session_state.current_doc = paper.get("path")
+                st.session_state.current_doc_name = paper.get("name", "")
+                st.rerun()
+            favorite_label = "取消收藏" if paper.get("favorite") else "收藏"
+            if st.button(favorite_label, key=f"fav_lib_{safe_key}", use_container_width=True):
+                set_library_favorite(paper_id, not paper.get("favorite"))
+                st.rerun()
+            tags_text = st.text_input(
+                "标签（逗号分隔）",
+                value=", ".join(paper.get("tags") or []),
+                key=f"tags_lib_{safe_key}",
+            )
+            if st.button("保存标签", key=f"save_tags_lib_{safe_key}", use_container_width=True):
+                update_library_tags(paper_id, [tag.strip() for tag in re.split(r"[,，]", tags_text) if tag.strip()])
+                st.rerun()
+            if st.button("加入对比", key=f"compare_lib_{safe_key}", use_container_width=True):
+                add_record_to_current_session(paper)
+                compare_ids = st.session_state.setdefault("compare_paper_ids", [])
+                if paper_id not in compare_ids:
+                    compare_ids.append(paper_id)
+                compare_tags = list(dict.fromkeys((paper.get("tags") or []) + ["待对比"]))
+                update_library_tags(paper_id, compare_tags)
+                st.rerun()
+            if st.button("重新解析", key=f"reparse_lib_{safe_key}", use_container_width=True):
+                for key in list(st.session_state.keys()):
+                    if str(key).startswith(f"parsed::{paper.get('path')}"):
+                        del st.session_state[key]
+                st.session_state.current_doc = paper.get("path")
+                st.session_state.current_doc_name = paper.get("name", "")
+                st.rerun()
+            if st.button("查看结构化信息", key=f"inspect_lib_{safe_key}", use_container_width=True):
+                st.session_state.current_doc = paper.get("path")
+                st.session_state.current_doc_name = paper.get("name", "")
+                st.rerun()
+            if st.button("从当前会话移除", key=f"remove_session_lib_{safe_key}", use_container_width=True):
+                st.session_state.uploaded_papers = [
+                    p for p in st.session_state.uploaded_papers if p.get("paper_id") != paper_id
+                ]
+                if active:
+                    st.session_state.current_doc = None
+                    st.session_state.current_doc_name = ""
+                st.rerun()
+            st.divider()
+            confirm = st.checkbox("确认从论文库删除", key=f"confirm_delete_lib_{safe_key}")
+            if st.button("从论文库删除", key=f"delete_lib_{safe_key}", use_container_width=True, disabled=not confirm):
+                st.session_state.tool_registry.execute(
+                    {"tool": "sqlite_paper_db", "kwargs": {"operation": "delete", "paper_id": paper_id}}
+                )
+                st.session_state.uploaded_papers = [
+                    p for p in st.session_state.uploaded_papers if p.get("paper_id") != paper_id
+                ]
+                if active:
+                    st.session_state.current_doc = None
+                    st.session_state.current_doc_name = ""
+                st.rerun()
+
+
+def render_library_tag(tag: str) -> str:
+    klass = "tag"
+    if tag in {"已收藏", "已选择"}:
+        klass += " teal"
+    elif tag in {"待对比", "待处理"}:
+        klass += " amber"
+    return f'<span class="{klass}">{html.escape(tag)}</span>'
+
+
 def render_sidebar() -> None:
     with st.sidebar:
-        st.markdown("### 论文资产")
+        st.markdown(
+            """
+            <div class="sidebar-brand">
+              <div class="sidebar-brand-mark">文</div>
+              <div>
+                <p class="sidebar-brand-title">学术文献分析助手</p>
+                <p class="sidebar-brand-subtitle">Academic Lit Agent</p>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            """
+            <div class="asset-title-row">
+              <h3>论文资产</h3>
+              <div class="asset-add">＋</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         uploads = st.file_uploader(
             "上传 PDF / Word / Markdown",
             type=["pdf", "docx", "doc", "md", "txt"],
@@ -630,31 +1538,10 @@ def render_sidebar() -> None:
                 add_uploaded_file(uploaded)
             st.success(f"已加入 {len(uploads)} 个文件")
 
-        if st.session_state.uploaded_papers:
-            for paper in list(reversed(st.session_state.uploaded_papers)):
-                active = st.session_state.get("current_doc_name") == paper["name"]
-                chip_class = "paper-chip active" if active else "paper-chip"
-                st.markdown(
-                    f"""
-                    <div class="{chip_class}">
-                      <div class="paper-title">{html.escape(paper["name"])}</div>
-                      <div class="paper-meta"><span>{html.escape(paper["timestamp"])}</span><span>{'当前' if active else '可选择'}</span></div>
-                      <span class="tag">论文</span>{'<span class="tag teal">已选择</span>' if active else ''}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                cols = st.columns([3, 1])
-                if cols[0].button("打开", key=f"open_{paper['name']}", use_container_width=True):
-                    st.session_state.current_doc = paper["path"]
-                    st.session_state.current_doc_name = paper["name"]
-                    st.rerun()
-                if cols[1].button("×", key=f"delete_{paper['name']}", help="删除记录"):
-                    st.session_state.uploaded_papers = [p for p in st.session_state.uploaded_papers if p["name"] != paper["name"]]
-                    if active:
-                        st.session_state.current_doc = None
-                        st.session_state.current_doc_name = ""
-                    st.rerun()
+        library_records = paper_library_records()
+        if library_records:
+            for paper in library_records:
+                render_library_card(paper)
         else:
             st.caption("还没有上传论文。")
 
@@ -696,6 +1583,10 @@ def render_sidebar() -> None:
             out = st.session_state.tool_registry.execute({"tool": "sqlite_paper_db", "kwargs": {"operation": "stats"}})
             append_tool_result("论文库统计", out, NO_LLM, "sqlite_paper_db")
             st.rerun()
+        if st.button("去重论文库", use_container_width=True):
+            out = st.session_state.tool_registry.execute({"tool": "sqlite_paper_db", "kwargs": {"operation": "dedupe"}})
+            append_tool_result("论文库去重", out, NO_LLM, "sqlite_paper_db")
+            st.rerun()
         if st.button("导出报告", use_container_width=True):
             append_tool_result("导出报告", "当前对话和分析结果已整理在分析流中。后续可以接入 Word/LaTeX 导出。", NO_LLM, "")
             st.rerun()
@@ -714,7 +1605,10 @@ def render_sidebar() -> None:
 
 
 def render_topbar() -> None:
-    left, default_col, policy_col, save_col, action_col = st.columns([0.95, 0.4, 0.4, 0.28, 0.42], vertical_alignment="top")
+    left, default_col, policy_col, save_col, action_col = st.columns(
+        [0.78, 0.66, 0.74, 0.34, 0.48],
+        vertical_alignment="center",
+    )
     with left:
         st.markdown(
             """
@@ -729,9 +1623,22 @@ def render_topbar() -> None:
     with default_col:
         if models:
             idx = model_index(models, st.session_state.get("current_model"))
-            st.session_state.current_model = st.selectbox("默认模型", models, index=idx, key="top_default_model")
+            st.session_state.current_model = st.selectbox(
+                "默认模型",
+                models,
+                index=idx,
+                key="top_default_model",
+                label_visibility="collapsed",
+                format_func=lambda name: f"默认： {name}",
+            )
         else:
-            st.selectbox("默认模型", ["未配置"], disabled=True)
+            st.selectbox(
+                "默认模型",
+                ["未配置"],
+                disabled=True,
+                label_visibility="collapsed",
+                format_func=lambda name: f"默认： {name}",
+            )
     with policy_col:
         policies = ["允许单次切换", "始终使用默认模型"]
         st.session_state.model_policy = st.selectbox(
@@ -739,6 +1646,8 @@ def render_topbar() -> None:
             policies,
             index=model_index(policies, st.session_state.get("model_policy")),
             key="top_model_policy",
+            label_visibility="collapsed",
+            format_func=lambda policy: f"策略： {policy}",
         )
     with save_col:
         if st.button("保存会话", use_container_width=True):
@@ -861,7 +1770,7 @@ def render_tool_console() -> None:
 
 
 def render_chat_feed() -> None:
-    feed = st.container(height=322, border=False)
+    feed = st.container(height=180, border=False)
     with feed:
         if not st.session_state.messages:
             st.info("可以直接提问，也可以从工具参数里启动搜索、对比、研究空白或引用分析。")
@@ -870,11 +1779,16 @@ def render_chat_feed() -> None:
 
     models = active_model_names()
     with st.form("message_form", clear_on_submit=True, border=False):
-        cols = st.columns([0.06, 0.48, 0.28, 0.18])
+        cols = st.columns([0.07, 0.55, 0.25, 0.13], vertical_alignment="center")
         with cols[0]:
-            st.markdown('<div style="height:38px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#667085;">＋</div>', unsafe_allow_html=True)
+            st.markdown('<div class="composer-plus">＋</div>', unsafe_allow_html=True)
         with cols[1]:
-            prompt = st.text_input("消息", placeholder="继续提问，或输入 / 调用工具...", label_visibility="collapsed")
+            prompt = st.text_area(
+                "消息",
+                placeholder="继续提问，或输入 / 调用工具...",
+                height=52,
+                label_visibility="collapsed",
+            )
         with cols[2]:
             if models:
                 current = st.session_state.get("message_model") or st.session_state.get("current_model")
