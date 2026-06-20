@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Literature research workspace."""
 
+import pathlib, sys
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent))
+
 import hashlib
 import html
 import json
@@ -1358,12 +1361,46 @@ def run_llm_structure_for_current_doc() -> None:
 
 
 def run_full_translation_for_current_doc() -> None:
-    path = st.session_state.get("current_doc")
-    text = parse_document(path)
-    if not path or not text:
-        st.session_state["last_translation_status"] = "请先选择论文。"
+    """Callback: just flags that translation is pending. Main flow does the work."""
+    st.session_state["_translate_pending"] = True
+
+
+def _execute_full_translation(path: str, text: str) -> None:
+    """Run the actual translation in the main render flow (not inside a callback).
+    Uses st.status() for progress — safe in the main script execution context."""
+    key = _doc_key(path, "full_translation")
+    client = get_llm_client(st.session_state.get("current_model"))
+    if not client:
+        st.session_state[key] = "请先配置大模型。"
+        st.session_state["last_translation_status"] = "翻译失败：未配置模型"
         return
-    st.session_state[_doc_key(path, "full_translation")] = translate_full_document(text)
+    clean_text = _clean_for_translation(text)
+    chunks = _split_text(clean_text, 2800)
+    if not chunks:
+        st.session_state[key] = "没有可翻译的文本。"
+        st.session_state["last_translation_status"] = "没有可翻译的文本"
+        return
+
+    translated = []
+    with st.status(f"正在翻译全文（共 {len(chunks)} 段）...", expanded=True) as status:
+        for index, chunk in enumerate(chunks, 1):
+            status.write(f"正在翻译第 {index}/{len(chunks)} 段...")
+            prompt = (
+                "将下面的学术论文正文完整翻译为中文。要求：\n"
+                "- 保留术语、公式、引用编号和小节编号。\n"
+                "- 不要总结，不要省略，不要添加解释。\n"
+                "- 只输出译文。\n\n"
+                f"第 {index}/{len(chunks)} 段：\n{chunk}"
+            )
+            try:
+                translated.append(client.chat(
+                    [{"role": "user", "content": prompt}],
+                    temperature=0.1, max_tokens=3500))
+            except Exception as exc:
+                translated.append(f"\n\n[第 {index} 段翻译失败：{exc}]\n\n{chunk}")
+        status.update(label="全文翻译完成！", state="complete")
+
+    st.session_state[key] = "\n\n".join(translated)
     st.session_state["last_translation_status"] = "全文翻译已完成。"
 
 
@@ -1534,9 +1571,17 @@ def render_sidebar() -> None:
             key="paper_uploads",
         )
         if uploads:
+            # Only process files we haven't seen yet (avoids re-processing on rerun)
+            if "_processed_uploads" not in st.session_state:
+                st.session_state["_processed_uploads"] = set()
+            new_count = 0
             for uploaded in uploads:
-                add_uploaded_file(uploaded)
-            st.success(f"已加入 {len(uploads)} 个文件")
+                if uploaded.name not in st.session_state["_processed_uploads"]:
+                    add_uploaded_file(uploaded)
+                    st.session_state["_processed_uploads"].add(uploaded.name)
+                    new_count += 1
+            if new_count:
+                st.success(f"已加入 {new_count} 个文件")
 
         library_records = paper_library_records()
         if library_records:
@@ -1581,15 +1626,22 @@ def render_sidebar() -> None:
             st.switch_page("pages/model_config.py")
         if st.button("论文库统计", use_container_width=True):
             out = st.session_state.tool_registry.execute({"tool": "sqlite_paper_db", "kwargs": {"operation": "stats"}})
+            out += "\n\n" + st.session_state.tool_registry.execute({"tool": "sqlite_paper_db", "kwargs": {"operation": "list"}})
             append_tool_result("论文库统计", out, NO_LLM, "sqlite_paper_db")
             st.rerun()
-        if st.button("去重论文库", use_container_width=True):
-            out = st.session_state.tool_registry.execute({"tool": "sqlite_paper_db", "kwargs": {"operation": "dedupe"}})
-            append_tool_result("论文库去重", out, NO_LLM, "sqlite_paper_db")
-            st.rerun()
         if st.button("导出报告", use_container_width=True):
-            append_tool_result("导出报告", "当前对话和分析结果已整理在分析流中。后续可以接入 Word/LaTeX 导出。", NO_LLM, "")
-            st.rerun()
+            st.session_state.pop("_draft_msg_count", None)  # force refresh
+            report = _get_or_generate_draft()
+            append_tool_result("分析报告", report, NO_LLM, "")
+
+        # Download button — always visible, auto-caches via _get_or_generate_draft
+        st.download_button(
+            label="下载文献综述草稿",
+            data=_get_or_generate_draft(),
+            file_name=f"文献综述草稿_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
 
         st.divider()
         st.markdown("### 对话")
@@ -1836,6 +1888,12 @@ def render_document_preview(path: str | None, name: str) -> None:
     with toolbar[3]:
         st.caption(f"{name} · {fmt.upper()}")
 
+    # ── execute pending translation in main flow (not inside callback) ──
+    if st.session_state.pop("_translate_pending", False):
+        _execute_full_translation(path, text)
+        # No st.rerun() — let the script continue to render tabs below.
+        # The translation was just stored in session_state, so the tab will see it.
+
     preview_tab, structure_tab, translation_tab, notes_tab = st.tabs(["原文", "结构化解析", "翻译", "笔记"])
     with preview_tab:
         if fmt == "pdf" and _has_lib("fitz"):
@@ -1909,20 +1967,37 @@ def render_pdf_page(path: str) -> None:
 
     cache_key = _doc_key(path, "pdf_pages")
     if cache_key not in st.session_state:
-        doc = fitz.open(path)
-        try:
-            pages = []
-            for page_index in range(len(doc)):
-                pix = doc[page_index].get_pixmap(matrix=fitz.Matrix(1.15, 1.15))
-                pages.append(pix.tobytes("png"))
-            st.session_state[cache_key] = pages
-        finally:
-            doc.close()
+        with st.spinner(f"正在加载 PDF 页面..."):
+            doc = fitz.open(path)
+            try:
+                pages = []
+                total = len(doc)
+                for page_index in range(total):
+                    pix = doc[page_index].get_pixmap(matrix=fitz.Matrix(1.15, 1.15))
+                    pages.append(pix.tobytes("png"))
+                st.session_state[cache_key] = pages
+            finally:
+                doc.close()
+
     pages = st.session_state[cache_key]
+    total_pages = len(pages)
+
+    # Show first batch (3 pages), rest on demand — avoids blocking UI on large PDFs
+    show_key = f"{cache_key}_shown"
+    if show_key not in st.session_state:
+        st.session_state[show_key] = min(3, total_pages)
+
+    shown = st.session_state[show_key]
     with st.container(height=640, border=False):
-        for index, image in enumerate(pages, 1):
-            st.caption(f"第 {index} 页 / 共 {len(pages)} 页")
-            st.image(image, use_container_width=True)
+        for index in range(shown):
+            st.caption(f"第 {index + 1} 页 / 共 {total_pages} 页")
+            st.image(pages[index], use_container_width=True)
+
+        if shown < total_pages:
+            remaining = total_pages - shown
+            if st.button(f"加载更多页面（还有 {remaining} 页）", use_container_width=True, key=f"more_pages_{shown}"):
+                st.session_state[show_key] = min(shown + 3, total_pages)
+                st.rerun()
 
 
 def render_docx(path: str) -> None:
@@ -2012,32 +2087,6 @@ def _fallback_structure(sections: dict) -> str:
     )
 
 
-def translate_full_document(text: str) -> str:
-    client = get_llm_client(st.session_state.get("current_model"))
-    if not client:
-        return "请先配置大模型。"
-    clean_text = _clean_for_translation(text)
-    chunks = _split_text(clean_text, 2800)
-    if not chunks:
-        return "没有可翻译的文本。"
-    progress = st.progress(0, text="准备翻译全文")
-    translated = []
-    for index, chunk in enumerate(chunks, 1):
-        progress.progress((index - 1) / len(chunks), text=f"正在翻译第 {index}/{len(chunks)} 段")
-        prompt = (
-            "将下面的学术论文正文完整翻译为中文。要求：\n"
-            "- 保留术语、公式、引用编号和小节编号。\n"
-            "- 不要总结，不要省略，不要添加解释。\n"
-            "- 只输出译文。\n\n"
-            f"第 {index}/{len(chunks)} 段：\n{chunk}"
-        )
-        try:
-            translated.append(client.chat([{"role": "user", "content": prompt}], temperature=0.1, max_tokens=3500))
-        except Exception as exc:
-            translated.append(f"\n\n[第 {index} 段翻译失败：{exc}]\n\n{chunk}")
-    progress.progress(1.0, text="全文翻译完成")
-    return "\n\n".join(translated)
-
 
 def _split_text(text: str, chunk_size: int) -> list[str]:
     chunks = []
@@ -2061,6 +2110,135 @@ def _split_text(text: str, chunk_size: int) -> list[str]:
     if current:
         chunks.append("\n\n".join(current))
     return chunks
+
+
+def _get_or_generate_draft() -> str:
+    """Return cached draft, regenerating only when messages change."""
+    msgs = st.session_state.messages
+    msg_count = len(msgs)
+    if st.session_state.get("_draft_msg_count") != msg_count:
+        st.session_state["_cached_draft"] = _generate_report()
+        st.session_state["_draft_msg_count"] = msg_count
+    return st.session_state["_cached_draft"]
+
+
+def _generate_report() -> str:
+    """Generate a structured Markdown literature review draft from the current session."""
+    msgs = st.session_state.messages
+    now = datetime.now().strftime('%Y-%m-%d %H:%M')
+
+    lines = [
+        "# 文献综述草稿",
+        "",
+        f"> 自动生成于 {now} · 模型：{st.session_state.get('current_model', '未配置')}",
+        "",
+        "---",
+        "",
+    ]
+
+    # ── 1. 研究问题 ──
+    user_questions = [m.get("content", "") for m in msgs if m.get("role") == "user"]
+    if user_questions:
+        lines.append("## 1. 研究问题")
+        for i, q in enumerate(user_questions, 1):
+            lines.append(f"**Q{i}:** {q.strip()[:300]}")
+        lines.append("")
+
+    # ── 2. 文献搜索与筛选结果 ──
+    search_results = [m for m in msgs if m.get("tools_called") and "search_papers" in m["tools_called"]]
+    if search_results:
+        lines.append("## 2. 文献检索结果")
+        for i, sr in enumerate(search_results, 1):
+            content = sr.get("content", "")
+            # Strip the "### xxx" title since we add our own
+            content = content.replace("### ", "#### ")
+            lines.append(content[:5000])
+        lines.append("")
+
+    # ── 3. 文献对比分析 ──
+    compare_results = [m for m in msgs if m.get("tools_called") and "literature_comparator" in m["tools_called"]]
+    if compare_results:
+        lines.append("## 3. 文献对比分析")
+        for cr in compare_results:
+            content = cr.get("content", "")
+            lines.append(content[:5000])
+        lines.append("")
+
+    # ── 4. 研究空白分析 ──
+    gap_results = [m for m in msgs if m.get("tools_called") and "research_gap_analyzer" in m["tools_called"]]
+    if gap_results:
+        lines.append("## 4. 研究空白与趋势")
+        for gr in gap_results:
+            content = gr.get("content", "")
+            lines.append(content[:5000])
+        lines.append("")
+
+    # ── 5. 已上传论文的结构化解析 ──
+    papers = st.session_state.get("uploaded_papers", [])
+    if papers:
+        lines.append("## 5. 已分析论文清单")
+        for p in papers:
+            path = p["path"]
+            name = p["name"]
+            lines.append(f"### {name}")
+            # Try to get structured sections
+            text = parse_document(path)
+            if text and not text.startswith("["):
+                sections = _extract_sections(text)
+                for sec_key, sec_label in [
+                    ("title", "标题"), ("abstract", "摘要"), ("method", "方法"),
+                    ("results", "结果"), ("conclusion", "结论")
+                ]:
+                    sec_text = sections.get(sec_key, "").strip()
+                    if sec_text and len(sec_text) > 10:
+                        lines.append(f"**{sec_label}:** {sec_text[:800]}")
+                        lines.append("")
+        lines.append("")
+
+    # ── 6. 翻译内容 ──
+    for p in papers:
+        path = p["path"]
+        translation = st.session_state.get(_doc_key(path, "full_translation"), "")
+        if translation and not translation.startswith("请先配置") and "翻译失败" not in translation:
+            lines.append(f"## 6. 全文翻译：{p['name']}")
+            lines.append(translation[:8000])
+            lines.append("")
+            break  # only include first translated paper
+
+    # ── 7. 引文网络 ──
+    citation_results = [m for m in msgs if m.get("tools_called") and "citation_traverser" in m["tools_called"]]
+    if citation_results:
+        lines.append("## 7. 引文网络分析")
+        for ct in citation_results:
+            lines.append(ct.get("content", "")[:5000])
+        lines.append("")
+
+    # ── 8. 其他分析 ──
+    other_results = [m for m in msgs if m.get("tools_called") and
+                     not any(t in m["tools_called"] for t in
+                             ["search_papers", "literature_comparator", "research_gap_analyzer",
+                              "citation_traverser"])]
+    if other_results:
+        lines.append("## 8. 补充分析")
+        for ot in other_results:
+            tools = ot.get("tools_called", [])
+            lines.append(f"### 工具：{', '.join(tools)}")
+            lines.append(ot.get("content", "")[:3000])
+        lines.append("")
+
+    # ── 数据库统计 ──
+    try:
+        stats = st.session_state.tool_registry.execute(
+            {"tool": "sqlite_paper_db", "kwargs": {"operation": "stats"}})
+        lines.append("## 附录：论文库统计")
+        lines.append(stats)
+        lines.append("")
+    except Exception:
+        pass
+
+    lines.append("---")
+    lines.append(f"*文献综述草稿由学术文献分析助手自动生成 · {now}*")
+    return "\n".join(lines)
 
 
 def _clean_for_translation(text: str) -> str:

@@ -1,5 +1,8 @@
 ﻿"""模型配置页面 - 添加/编辑/删除大模型配置"""
 
+import pathlib, sys
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent))
+
 import streamlit as st
 from src.models.model_manager import ModelConfig
 
