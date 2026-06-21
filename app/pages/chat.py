@@ -184,6 +184,26 @@ def page_css() -> None:
             padding-bottom: 112px;
             max-width: 1480px;
         }
+        .st-key-workspace_fixed_topbar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 300px !important;
+            right: auto !important;
+            width: calc(100vw - 300px) !important;
+            z-index: 950 !important;
+            box-sizing: border-box !important;
+            padding: 22px max(22px, calc((100vw - 300px - 1480px) / 2 + 22px)) 14px !important;
+            margin: 0 !important;
+            background: #f5f7fb !important;
+            border-bottom: 1px solid #e6ebf2 !important;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04) !important;
+        }
+        .st-key-workspace_fixed_topbar [data-testid="stHorizontalBlock"] {
+            align-items: center !important;
+        }
+        .workspace-topbar-spacer {
+            height: 126px;
+        }
         [data-testid="stSidebar"] {
             background: #ffffff;
             border-right: 1px solid #dfe5ee;
@@ -483,6 +503,97 @@ def page_css() -> None:
             background: #ffffff;
             min-height: 92px;
         }
+        .overview-card {
+            position: relative;
+            min-height: 104px;
+            border: 1px solid #e4eaf2;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+            padding: 14px 16px 13px 16px;
+            overflow: hidden;
+        }
+        .overview-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            background: var(--accent);
+            opacity: 0.95;
+        }
+        .overview-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .overview-title {
+            color: #697386;
+            font-size: 13px;
+            font-weight: 750;
+            line-height: 1.2;
+        }
+        .overview-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 9px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 850;
+        }
+        .overview-value {
+            color: #1f2430;
+            font-size: 28px;
+            line-height: 1;
+            font-weight: 860;
+            letter-spacing: 0;
+            margin-bottom: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .overview-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            max-width: 100%;
+            border-radius: 999px;
+            padding: 4px 8px;
+            background: var(--accent-soft);
+            color: #5f6f82;
+            font-size: 12px;
+            font-weight: 720;
+            line-height: 1.1;
+        }
+        .overview-chip::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: var(--accent);
+            flex: 0 0 auto;
+        }
+        .overview-card.paper {
+            --accent: #2f6feb;
+            --accent-soft: #eef4ff;
+        }
+        .overview-card.tools {
+            --accent: #0f8f75;
+            --accent-soft: #eaf8f4;
+        }
+        .overview-card.messages {
+            --accent: #7257d6;
+            --accent-soft: #f1edff;
+        }
+        .overview-card.model {
+            --accent: #b46b00;
+            --accent-soft: #fff4df;
+        }
         .tool-card strong {
             display: block;
             font-size: 13px;
@@ -685,25 +796,68 @@ def page_css() -> None:
             border: 1px dashed #adc2df !important;
             border-radius: 8px !important;
             background: #f7fbff !important;
-            padding: 10px 12px !important;
+            min-height: 46px !important;
+            padding: 0 !important;
+            position: relative !important;
+            cursor: pointer !important;
+            overflow: hidden !important;
+            display: flex !important;
+            align-items: center !important;
         }
-        [data-testid="stSidebar"] [data-testid="stFileUploader"] button {
-            height: 30px !important;
-            min-height: 30px !important;
-            border-radius: 6px !important;
-            font-size: 12px !important;
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section::before {
+            content: "⇧ 上传 PDF / Word / Markdown";
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #2459a6;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0;
+            z-index: 2;
+            pointer-events: none;
         }
-        [data-testid="stSidebar"] [data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {
-            color: #2459a6 !important;
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section button,
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section small,
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section [data-testid="stMarkdownContainer"],
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section [data-testid="stFileUploaderDropzoneInstructions"] {
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section > div,
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section ul,
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section li,
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section [class*="file"],
+        [data-testid="stSidebar"] [data-testid="stFileUploader"] section [class*="File"] {
+            display: none !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stFileUploaderFile"] {
+            display: none !important;
+        }
+        [data-testid="stSidebar"] .st-key-new_chat_sticky {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 300px !important;
+            box-sizing: border-box !important;
+            z-index: 1000 !important;
+            background: #ffffff !important;
+            padding: 18px 30px 18px !important;
+            margin: 0 0 10px !important;
+            border-bottom: 1px solid #ebeff5 !important;
+        }
+        .sidebar-fixed-spacer {
+            height: 290px;
+        }
+        [data-testid="stSidebar"] .st-key-new_chat_sticky button {
+            height: 34px !important;
+            min-height: 34px !important;
+            border-radius: 8px !important;
             font-size: 13px !important;
-            font-weight: 650 !important;
+            font-weight: 750 !important;
         }
         .asset-title-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin: 2px 0 10px;
+            margin: 1px 0 12px;
         }
         .asset-title-row h3 {
             margin: 0 !important;
@@ -711,19 +865,6 @@ def page_css() -> None:
             font-size: 16px !important;
             font-weight: 850 !important;
             line-height: 1.2 !important;
-        }
-        .asset-add {
-            width: 32px;
-            height: 32px;
-            border: 1px solid #dfe5ee;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #344054;
-            background: #ffffff;
-            font-size: 20px;
-            line-height: 1;
         }
         .library-card {
             border: 1px solid #dfe5ee;
@@ -779,26 +920,37 @@ def page_css() -> None:
         }
         [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"] {
             border-color: #dfe5ee !important;
-            border-radius: 10px !important;
+            border-radius: 12px !important;
             background: #ffffff !important;
+            margin-top: 10px !important;
         }
         [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"]:has(.library-card-inner.active) {
             border-color: #9bbcf5 !important;
             background: #f5f9ff !important;
         }
         [data-testid="stSidebar"] [data-testid="stPopover"] button {
-            min-height: 30px !important;
-            height: 30px !important;
+            min-width: 30px !important;
+            width: 30px !important;
+            min-height: 24px !important;
+            height: 24px !important;
+            border: none !important;
             border-radius: 6px !important;
-            padding: 0 8px !important;
-            font-size: 16px !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            color: #0f172a !important;
+            font-size: 18px !important;
+            font-weight: 850 !important;
             line-height: 1 !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stPopover"] button [data-testid="stIconMaterial"] {
+            display: none !important;
         }
         .library-card-inner {
             padding: 0;
         }
         .library-card-inner .library-card-title {
-            margin-top: 2px;
+            margin-top: 0;
         }
         .library-menu-wrap button {
             width: 34px !important;
@@ -1074,6 +1226,15 @@ def page_css() -> None:
             box-shadow: none !important;
         }
         @media (max-width: 1100px) {
+            .st-key-workspace_fixed_topbar {
+                left: 0 !important;
+                width: 100vw !important;
+                padding-left: 16px !important;
+                padding-right: 16px !important;
+            }
+            .workspace-topbar-spacer {
+                height: 150px;
+            }
             div[data-testid="stForm"] {
                 left: 16px !important;
                 right: 16px !important;
@@ -1456,14 +1617,14 @@ def render_library_card(paper: dict) -> None:
     meta_right = "当前阅读" if active else (paper.get("status") or paper.get("timestamp") or "已入库")
     inner_class = "library-card-inner active" if active else "library-card-inner"
     with st.container(border=True):
-        top_cols = st.columns([0.74, 0.26], vertical_alignment="top")
+        top_cols = st.columns([0.84, 0.16], vertical_alignment="top")
         with top_cols[0]:
             st.markdown(
                 f'<div class="{inner_class}"><div class="library-card-title">{html.escape(paper.get("name", "未命名论文"))}</div></div>',
                 unsafe_allow_html=True,
             )
         with top_cols[1]:
-            menu = st.popover("...", key=f"paper_menu_{safe_key}", width="content", use_container_width=True)
+            menu = st.popover("...", key=f"paper_menu_{safe_key}", width="content")
         st.markdown(
             f"""
             <div class="library-meta-row"><span>{html.escape(str(meta_left))}</span><span>{html.escape(str(meta_right))}</span></div>
@@ -1543,23 +1704,47 @@ def render_library_tag(tag: str) -> str:
 
 def render_sidebar() -> None:
     with st.sidebar:
-        st.markdown(
-            """
-            <div class="sidebar-brand">
-              <div class="sidebar-brand-mark">文</div>
-              <div>
-                <p class="sidebar-brand-title">学术文献分析助手</p>
-                <p class="sidebar-brand-subtitle">Academic Lit Agent</p>
-              </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        with st.container(key="new_chat_sticky"):
+            st.markdown(
+                """
+                <div class="sidebar-brand">
+                  <div class="sidebar-brand-mark">文</div>
+                  <div>
+                    <p class="sidebar-brand-title">学术文献分析助手</p>
+                    <p class="sidebar-brand-subtitle">Academic Lit Agent</p>
+                  </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button("新建对话", key="new_chat_sidebar_top", use_container_width=True):
+                st.session_state.messages = []
+                st.session_state.current_session_id = None
+                st.rerun()
+            if st.button("模型配置", key="quick_model_config_top", use_container_width=True):
+                st.switch_page("pages/model_config.py")
+            if st.button("论文库统计", key="quick_library_stats_top", use_container_width=True):
+                out = st.session_state.tool_registry.execute({"tool": "sqlite_paper_db", "kwargs": {"operation": "stats"}})
+                out += "\n\n" + st.session_state.tool_registry.execute({"tool": "sqlite_paper_db", "kwargs": {"operation": "list"}})
+                append_tool_result("论文库统计", out, NO_LLM, "sqlite_paper_db")
+                st.rerun()
+            if st.button("导出报告", key="quick_export_report_top", use_container_width=True):
+                st.session_state.pop("_draft_msg_count", None)  # force refresh
+                report = _get_or_generate_draft()
+                append_tool_result("分析报告", report, NO_LLM, "")
+            st.download_button(
+                label="下载文献综述草稿",
+                data=_get_or_generate_draft(),
+                file_name=f"文献综述草稿_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
+                mime="text/markdown",
+                use_container_width=True,
+                key="quick_download_draft_top",
+            )
+        st.markdown('<div class="sidebar-fixed-spacer"></div>', unsafe_allow_html=True)
         st.markdown(
             """
             <div class="asset-title-row">
               <h3>论文资产</h3>
-              <div class="asset-add">＋</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1569,6 +1754,7 @@ def render_sidebar() -> None:
             type=["pdf", "docx", "doc", "md", "txt"],
             accept_multiple_files=True,
             key="paper_uploads",
+            label_visibility="collapsed",
         )
         if uploads:
             # Only process files we haven't seen yet (avoids re-processing on rerun)
@@ -1585,70 +1771,14 @@ def render_sidebar() -> None:
 
         library_records = paper_library_records()
         if library_records:
-            for paper in library_records:
-                render_library_card(paper)
+            with st.container(height=260, border=False):
+                for paper in library_records:
+                    render_library_card(paper)
         else:
             st.caption("还没有上传论文。")
 
         st.divider()
-        st.markdown("### 可用模型")
-        models = active_model_names()
-        if models:
-            default_index = model_index(models, st.session_state.get("current_model"))
-            st.session_state.current_model = st.selectbox("默认模型", models, index=default_index, key="global_model_select")
-            if st.session_state.get("message_model") not in models:
-                st.session_state.message_model = st.session_state.current_model
-            if st.session_state.get("task_model") not in models:
-                st.session_state.task_model = st.session_state.current_model
-            for name in models:
-                active = name == st.session_state.current_model
-                st.markdown(
-                    f"""
-                    <div class="paper-chip {'active' if active else ''}">
-                      <div class="paper-title"><span class="status-dot"></span> {html.escape(name)}</div>
-                      <div class="paper-meta"><span>{'默认' if active else '在线'}</span><span>可用于任务</span></div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-        else:
-            st.warning("还没有启用模型。")
-
-        st.divider()
-        st.markdown("### 工作区")
-        st.caption("当前项目：数字孪生综述")
-        st.caption(f"默认模型：{st.session_state.get('current_model') or '未配置'}")
-        st.caption(f"模型策略：{st.session_state.get('model_policy', '允许单次切换')}")
-
-        st.divider()
-        st.markdown("### 快捷入口")
-        if st.button("模型配置", use_container_width=True):
-            st.switch_page("pages/model_config.py")
-        if st.button("论文库统计", use_container_width=True):
-            out = st.session_state.tool_registry.execute({"tool": "sqlite_paper_db", "kwargs": {"operation": "stats"}})
-            out += "\n\n" + st.session_state.tool_registry.execute({"tool": "sqlite_paper_db", "kwargs": {"operation": "list"}})
-            append_tool_result("论文库统计", out, NO_LLM, "sqlite_paper_db")
-            st.rerun()
-        if st.button("导出报告", use_container_width=True):
-            st.session_state.pop("_draft_msg_count", None)  # force refresh
-            report = _get_or_generate_draft()
-            append_tool_result("分析报告", report, NO_LLM, "")
-
-        # Download button — always visible, auto-caches via _get_or_generate_draft
-        st.download_button(
-            label="下载文献综述草稿",
-            data=_get_or_generate_draft(),
-            file_name=f"文献综述草稿_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
-            mime="text/markdown",
-            use_container_width=True,
-        )
-
-        st.divider()
         st.markdown("### 对话")
-        if st.button("新建对话", use_container_width=True):
-            st.session_state.messages = []
-            st.session_state.current_session_id = None
-            st.rerun()
         for sid, session in reversed(list(st.session_state.sessions.items())):
             if st.button(session["title"], key=f"session_{sid}", use_container_width=True):
                 st.session_state.messages = session["messages"]
@@ -1657,69 +1787,88 @@ def render_sidebar() -> None:
 
 
 def render_topbar() -> None:
-    left, default_col, policy_col, save_col, action_col = st.columns(
-        [0.78, 0.66, 0.74, 0.34, 0.48],
-        vertical_alignment="center",
-    )
-    with left:
-        st.markdown(
-            """
-            <div class="topbar-title">
-              <h1>文献研究工作台</h1>
-              <p>默认模型管理全局任务；单条消息、工具调用和长任务可以临时指定模型。</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
+    with st.container(key="workspace_fixed_topbar"):
+        left, default_col, policy_col, save_col, action_col = st.columns(
+            [0.78, 0.66, 0.74, 0.34, 0.48],
+            vertical_alignment="center",
         )
-    models = active_model_names()
-    with default_col:
-        if models:
-            idx = model_index(models, st.session_state.get("current_model"))
-            st.session_state.current_model = st.selectbox(
-                "默认模型",
-                models,
-                index=idx,
-                key="top_default_model",
-                label_visibility="collapsed",
-                format_func=lambda name: f"默认： {name}",
+        with left:
+            st.markdown(
+                """
+                <div class="topbar-title">
+                  <h1>文献研究工作台</h1>
+                  <p>默认模型管理全局任务；单条消息、工具调用和长任务可以临时指定模型。</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-        else:
-            st.selectbox(
-                "默认模型",
-                ["未配置"],
-                disabled=True,
+        models = active_model_names()
+        with default_col:
+            if models:
+                idx = model_index(models, st.session_state.get("current_model"))
+                st.session_state.current_model = st.selectbox(
+                    "默认模型",
+                    models,
+                    index=idx,
+                    key="top_default_model",
+                    label_visibility="collapsed",
+                    format_func=lambda name: f"默认： {name}",
+                )
+            else:
+                st.selectbox(
+                    "默认模型",
+                    ["未配置"],
+                    disabled=True,
+                    label_visibility="collapsed",
+                    format_func=lambda name: f"默认： {name}",
+                )
+        with policy_col:
+            policies = ["允许单次切换", "始终使用默认模型"]
+            st.session_state.model_policy = st.selectbox(
+                "任务策略",
+                policies,
+                index=model_index(policies, st.session_state.get("model_policy")),
+                key="top_model_policy",
                 label_visibility="collapsed",
-                format_func=lambda name: f"默认： {name}",
+                format_func=lambda policy: f"策略： {policy}",
             )
-    with policy_col:
-        policies = ["允许单次切换", "始终使用默认模型"]
-        st.session_state.model_policy = st.selectbox(
-            "任务策略",
-            policies,
-            index=model_index(policies, st.session_state.get("model_policy")),
-            key="top_model_policy",
-            label_visibility="collapsed",
-            format_func=lambda policy: f"策略： {policy}",
-        )
-    with save_col:
-        if st.button("保存会话", use_container_width=True):
-            save_ui_session()
-            st.success("已保存")
-    with action_col:
-        if st.button("生成综述草稿", type="primary", use_container_width=True):
-            st.session_state.pending_prompt = {
-                "text": "请基于当前论文、分析流和已上传论文，生成一份文献综述草稿提纲，包含研究背景、方法对比、研究空白和可写作小节。",
-                "model": normalize_model_choice(st.session_state.get("task_model")),
-            }
-            st.rerun()
+        with save_col:
+            if st.button("保存会话", use_container_width=True):
+                save_ui_session()
+                st.success("已保存")
+        with action_col:
+            if st.button("生成综述草稿", type="primary", use_container_width=True):
+                st.session_state.pending_prompt = {
+                    "text": "请基于当前论文、分析流和已上传论文，生成一份文献综述草稿提纲，包含研究背景、方法对比、研究空白和可写作小节。",
+                    "model": normalize_model_choice(st.session_state.get("task_model")),
+                }
+                st.rerun()
+    st.markdown('<div class="workspace-topbar-spacer"></div>', unsafe_allow_html=True)
 
 
 def render_metrics() -> None:
+    items = [
+        ("paper", "文", "当前论文", str(len(st.session_state.uploaded_papers)), "已上传"),
+        ("tools", "工", "已调用工具", str(len(st.session_state.tool_registry.list_tools())), "全部可用"),
+        ("messages", "讯", "当前消息", str(len(st.session_state.messages)), "分析流"),
+        ("model", "模", "本条模型", st.session_state.get("message_model") or "未配置", "可临时切换"),
+    ]
     metric_cols = st.columns(4)
-    metric_cols[0].metric("当前论文", len(st.session_state.uploaded_papers), "已上传")
-    metric_cols[1].metric("已调用工具", len(st.session_state.tool_registry.list_tools()), "全部可用")
-    metric_cols[2].metric("当前消息", len(st.session_state.messages), "分析流")
-    metric_cols[3].metric("本条模型", st.session_state.get("message_model") or "未配置", "可临时切换")
+    for col, (klass, icon, title, value, chip) in zip(metric_cols, items):
+        with col:
+            st.markdown(
+                f"""
+                <div class="overview-card {klass}">
+                  <div class="overview-card-top">
+                    <div class="overview-title">{html.escape(title)}</div>
+                    <div class="overview-icon">{html.escape(icon)}</div>
+                  </div>
+                  <div class="overview-value">{html.escape(value)}</div>
+                  <div class="overview-chip">{html.escape(chip)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 
 def render_tool_cards() -> None:
